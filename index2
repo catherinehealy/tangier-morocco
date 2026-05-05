@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tangier in a Day — MustGoGuide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --terra:#C4593A;--terra-light:#F2E8E3;--terra-dark:#8B3520;
+  --sand:#E8D5B7;--sand-light:#FAF6F0;--sand-mid:#D4BA94;
+  --teal:#1A6B5C;--teal-light:#E0F0EC;
+  --navy:#1C2B3A;
+  --gold:#C49A2A;--gold-light:#FDF3D8;
+  --text:#1C2B3A;--text2:#5A6878;--text3:#8A97A4;
+  --bg:#FAF6F0;--card:#FFFFFF;--bdr:rgba(28,43,58,0.12);
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);}
+body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:72px;}
+.app-header{background:var(--navy);padding:18px 20px 0;position:sticky;top:0;z-index:1000;}
+.app-header h1{font-family:'Playfair Display',serif;color:var(--sand);font-size:19px;font-weight:600;}
+.app-header .sub{color:var(--sand-mid);font-size:11px;margin-top:2px;text-transform:uppercase;letter-spacing:.5px;padding-bottom:12px;}
+.prog-wrap{background:var(--navy);padding:0 20px 14px;position:sticky;top:57px;z-index:999;}
+.prog-row{display:flex;justify-content:space-between;margin-bottom:6px;}
+.prog-row span{color:var(--sand-mid);font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+.prog-bg{background:rgba(255,255,255,.12);border-radius:4px;height:5px;overflow:hidden;}
+.prog-fill{background:var(--terra);height:100%;border-radius:4px;transition:width .5s ease;}
+.view{display:none;}
+.view.active{display:block;}
+.complete-banner{background:var(--teal);color:white;text-align:center;padding:14px 20px;font-size:14px;font-weight:500;display:none;}
+.complete-banner.show{display:block;}
+
+/* MAP VIEW */
+.map-next-card{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:108px;z-index:998;}
+.map-next-icon{width:34px;height:34px;border-radius:50%;background:var(--terra);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;transition:background .3s;}
+.map-next-info{flex:1;min-width:0;}
+.map-next-label{font-size:10px;color:var(--sand-mid);text-transform:uppercase;letter-spacing:.5px;}
+.map-next-name{font-family:'Playfair Display',serif;color:var(--sand);font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.map-next-detail{font-size:11px;color:var(--sand-mid);margin-top:1px;}
+.dir-hero-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:var(--terra);color:white;font-size:12px;font-weight:500;border-radius:20px;text-decoration:none;white-space:nowrap;flex-shrink:0;}
+.dir-hero-btn:hover{background:var(--terra-dark);}
+#map{width:100%;height:280px;z-index:1;}
+.map-stop-list{padding:8px 16px 16px;}
+.map-stop-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.map-stop-item:last-child{border-bottom:none;}
+.map-stop-item.active-stop .msi-name{color:var(--terra);font-weight:500;}
+.map-stop-item.done-stop .msi-name{text-decoration:line-through;color:var(--text3);}
+.msi-dot{width:24px;height:24px;border-radius:50%;color:white;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.msi-done-dot{width:24px;height:24px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.msi-done-dot::after{content:'';width:10px;height:6px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
+.msi-info{flex:1;min-width:0;}
+.msi-name{font-size:13px;color:var(--text);line-height:1.3;}
+.msi-dur{font-size:11px;color:var(--text3);margin-top:1px;}
+.go-btn{display:inline-flex;align-items:center;padding:5px 12px;background:var(--terra-light);color:var(--terra);border:1px solid rgba(196,89,58,.25);border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;white-space:nowrap;flex-shrink:0;}
+
+/* LIST VIEW */
+.time-block{margin:0 0 4px;padding:10px 20px 4px;}
+.tbl{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--terra);display:flex;align-items:center;gap:8px;}
+.tbl::after{content:'';flex:1;height:1px;background:var(--terra-light);}
+.running-late{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;margin:10px 16px 4px;cursor:pointer;}
+.tog-track{width:36px;height:20px;background:var(--bdr);border-radius:20px;position:relative;flex-shrink:0;transition:background .2s;}
+.tog-track.on{background:var(--terra);}
+.tog-thumb{width:16px;height:16px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.tog-track.on .tog-thumb{transform:translateX(16px);}
+.tog-label{font-size:13px;color:var(--text2);flex:1;}
+.tog-label strong{color:var(--text);font-weight:500;}
+.currency-bar{background:var(--navy);border-radius:10px;margin:8px 16px 4px;padding:12px 16px;display:flex;gap:7px;flex-wrap:wrap;}
+.cpill{background:rgba(255,255,255,.1);color:var(--sand);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.15);}
+.cpill strong{color:white;}
+.stop-card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;margin:0 16px 10px;overflow:hidden;}
+.stop-card.taxi-card{background:var(--gold-light);border:1px dashed var(--gold);}
+.stop-card.done .stop-name{text-decoration:line-through;color:var(--text3);}
+.stop-card.done .stop-header{opacity:.6;}
+.stop-header{display:flex;align-items:flex-start;gap:12px;padding:14px 14px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.stop-num{width:28px;height:28px;border-radius:50%;background:var(--terra);color:white;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.stop-info{flex:1;min-width:0;}
+.stop-name{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--text);line-height:1.3;}
+.stop-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}
+.dur{font-size:11px;color:var(--text2);background:var(--sand-light);padding:2px 8px;border-radius:20px;border:1px solid var(--sand);}
+.taxi-card .dur{background:var(--gold-light);border-color:#EBCF7A;color:var(--gold);}
+.stag{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--teal);font-weight:500;}
+.opt-badge{font-size:10px;background:var(--terra-light);color:var(--terra);border:1px solid rgba(196,89,58,.2);padding:2px 7px;border-radius:20px;}
+.stop-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.chk-btn{width:22px;height:22px;border-radius:50%;border:2px solid var(--bdr);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.chk-btn.checked{background:var(--teal);border-color:var(--teal);}
+.chk-btn.checked::after{content:'';width:10px;height:6px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
+.exp-icon{font-size:14px;color:var(--text3);transition:transform .25s;user-select:none;}
+.stop-card.open .exp-icon{transform:rotate(180deg);}
+.stop-body{display:none;padding:0 14px 14px 54px;border-top:1px solid var(--bdr);}
+.stop-card.open .stop-body{display:block;}
+.taxi-card .stop-body{border-top-color:var(--gold);}
+.desc{font-size:13px;color:var(--text2);line-height:1.7;padding-top:12px;}
+.shop-item{background:var(--sand-light);border:1px solid var(--sand);border-radius:8px;padding:10px 12px;margin-top:8px;}
+.si-name{font-size:13px;font-weight:500;color:var(--teal);margin-bottom:3px;}
+.si-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+.lunch-opt{background:var(--teal-light);border:1px solid rgba(26,107,92,.2);border-radius:8px;padding:10px 12px;margin-top:8px;}
+.lo-name{font-size:13px;font-weight:500;color:var(--teal);margin-bottom:2px;}
+.lo-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+.rating{color:var(--gold);font-size:11px;margin-top:2px;}
+.tip-box{background:var(--gold-light);border:1px solid #EBCF7A;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;color:#7A5C10;line-height:1.6;}
+.maps-choice{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.maps-choice a{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;text-decoration:none;}
+.gmaps-btn{background:var(--terra);color:white;}
+.gmaps-btn:hover{background:var(--terra-dark);}
+.amaps-btn{background:var(--navy);color:white;}
+.amaps-btn:hover{background:#2E4155;}
+.late-hidden{display:none!important;}
+.spacer{height:12px;}
+
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--navy);display:flex;z-index:1001;border-top:1px solid rgba(255,255,255,.1);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px 14px;cursor:pointer;border:none;background:transparent;-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.nav-btn.active{background:rgba(196,89,58,.2);}
+.nav-label{font-size:10px;color:var(--sand-mid);margin-top:4px;letter-spacing:.5px;text-transform:uppercase;}
+.nav-btn.active .nav-label{color:var(--terra);}
+.leaflet-popup-content-wrapper{border-radius:10px;}
+.leaflet-popup-content{font-family:'DM Sans',sans-serif;margin:10px 14px;}
+.pop-name{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:#1C2B3A;margin-bottom:3px;}
+.pop-dur{font-size:11px;color:#5A6878;}
+.pop-links{display:flex;gap:6px;margin-top:8px;}
+.pop-links a{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:500;text-decoration:none;color:white;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Tangier in a Day</h1>
+  <div class="sub">Cruise Port Itinerary · MustGoGuide</div>
+</div>
+<div class="prog-wrap">
+  <div class="prog-row">
+    <span id="prog-label">0 of 12 stops completed</span>
+    <span id="prog-pct">0%</span>
+  </div>
+  <div class="prog-bg"><div class="prog-fill" id="prog-bar" style="width:0%"></div></div>
+</div>
+<div class="complete-banner" id="complete-banner">🎉 Tour complete! Yalla — back to the ship!</div>
+
+<!-- MAP VIEW -->
+<div id="view-map" class="view active">
+  <div class="map-next-card">
+    <div class="map-next-icon" id="map-next-icon">S</div>
+    <div class="map-next-info">
+      <div class="map-next-label">Up next</div>
+      <div class="map-next-name" id="map-next-name">Cruise Terminal</div>
+      <div class="map-next-detail" id="map-next-detail">Depart 10:30am</div>
+    </div>
+    <a class="dir-hero-btn" id="map-next-link" href="https://maps.google.com/?q=35.7914,-5.8001" target="_blank">Go ↗</a>
+  </div>
+  <div id="map"></div>
+  <div class="map-stop-list" id="map-stop-list"></div>
+</div>
+
+<!-- LIST VIEW -->
+<div id="view-list" class="view">
+  <div class="running-late" onclick="toggleLate()">
+    <div class="tog-track" id="late-tog"><div class="tog-thumb"></div></div>
+    <div class="tog-label"><strong>Running late?</strong> Hide optional stops</div>
+  </div>
+  <div class="currency-bar">
+    <div class="cpill"><strong>10 MAD</strong> ≈ $1 USD</div>
+    <div class="cpill"><strong>City taxi</strong> 20–30 MAD</div>
+    <div class="cpill"><strong>Excursion taxi</strong> 300–400 MAD</div>
+    <div class="cpill"><strong>Mint tea</strong> ~15 MAD</div>
+    <div class="cpill"><strong>Caves entry</strong> ~80 MAD</div>
+    <div class="cpill"><strong>Babouches</strong> 100–150 MAD</div>
+  </div>
+  <div class="spacer"></div>
+
+  <div class="time-block"><div class="tbl">Morning — 10:30am to 1:00pm</div></div>
+
+  <div class="stop-card" id="card-0">
+    <div class="stop-header" onclick="toggleCard(0)">
+      <div class="stop-num">S</div>
+      <div class="stop-info"><div class="stop-name">Cruise Terminal</div><div class="stop-meta"><span class="dur">Depart 10:30am</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(0)" id="chk-0"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Walk out of the port and grab a petit taxi to Grand Socco. Agree on the fare before getting in — 20–30 MAD (~$2–3). The ride is about 5 minutes.</div>
+      <div class="tip-box">💡 Taxi drivers will approach you at the port exit. Be friendly but firm on the fare, and avoid full-day tour offers — you have your own plan!</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Port+de+Tanger+Ville,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Port+de+Tanger+Ville,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-card" id="card-1">
+    <div class="stop-header" onclick="toggleCard(1)">
+      <div class="stop-num">1</div>
+      <div class="stop-info"><div class="stop-name">Grand Socco</div><div class="stop-meta"><span class="dur">~20 min</span><span class="stag">Landmark</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(1)" id="chk-1"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">The grand gateway between modern Tangier and the ancient medina. Take in the lively roundabout, fountain, palm trees, and the ornate gate into the old city. Great orientation point before diving into the souks.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Grand+Socco,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Grand+Socco,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-card" id="card-2">
+    <div class="stop-header" onclick="toggleCard(2)">
+      <div class="stop-num" style="background:var(--teal)">2</div>
+      <div class="stop-info"><div class="stop-name">Medina Shopping — Rue Siaghine & Souks</div><div class="stop-meta"><span class="dur">~60–80 min total</span><span class="stag">Shopping</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(2)" id="chk-2"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">The medina's main shopping corridor. Work inward from Grand Socco — most shops are within 5 minutes of each other.</div>
+      <div class="shop-item"><div class="si-name">👡 Babouches — ~10 min</div><div class="si-desc">Souk stalls along Rue Siaghine. Aim for 100–150 MAD a pair. Feel the leather softness before buying. No-haggle option: Kasbah Collective inside the kasbah.</div></div>
+      <div class="shop-item"><div class="si-name">🧴 Argan Oil — ~15 min</div><div class="si-desc">Maison D'Argan Et De Miel El Kasbah (⭐4.8) — fixed prices, also stocks amlou (almond-argan paste, great edible gift). Biospartel (⭐4.9) on Rue Siaghine — black soap, rose water, argan oil.</div></div>
+      <div class="shop-item"><div class="si-name">🌶️ Spices — ~15 min</div><div class="si-desc">Brasil Spices (⭐5.0) for quality saffron. The Main Market for the full sensory experience — vendors grinding ras el hanout fresh. If you can only do one, do the Main Market.</div></div>
+      <div class="shop-item"><div class="si-name">🪡 Rugs — Bleu de Fès — ~15 min</div><div class="si-desc">2,000+ handmade Berber rugs, knowledgeable staff, rooftop terrace view over the medina. Ships internationally. Smaller rugs perfect for carry-ons.</div></div>
+      <div class="shop-item"><div class="si-name">🏺 Antiques & Pottery — ~10 min</div><div class="si-desc">Galerie Tindouf (⭐4.3) — antiques going back to the Roman Empire. Next door: Bazar Tindouf — ceramic tea sets, brass bracelets, decorative finds.</div></div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Rue+Siaghine,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Rue+Siaghine,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-card" id="card-3">
+    <div class="stop-header" onclick="toggleCard(3)">
+      <div class="stop-num">3</div>
+      <div class="stop-info"><div class="stop-name">Petit Socco</div><div class="stop-meta"><span class="dur">~15 min</span><span class="stag">Historic</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(3)" id="chk-3"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">The intimate heart of the old medina — once Tangier's social hub during its golden bohemian era, frequented by writers, artists, and spies. Sit at one of the old cafés and absorb the timeless atmosphere before heading up to the kasbah.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Petit+Socco,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Petit+Socco,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-card" id="card-4">
+    <div class="stop-header" onclick="toggleCard(4)">
+      <div class="stop-num">4</div>
+      <div class="stop-info"><div class="stop-name">Upper Kasbah & Alleyways</div><div class="stop-meta"><span class="dur">~40 min</span><span class="stag">Historic</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(4)" id="chk-4"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Wind uphill through the ancient kasbah's narrow whitewashed alleyways. Get gloriously lost — the views from the top over the Strait of Gibraltar toward Spain are spectacular. Look for ornate doors and tilework as you climb. The Musée de la Kasbah (17th-century sultan's palace) is here if you'd like to pop in.</div>
+      <div class="tip-box">💡 Streets are steep and uneven — wear comfortable shoes. Agree on a meeting point in case your group gets separated in the alleys.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Kasbah,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Kasbah,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-block"><div class="tbl">Lunch — around 1:00pm</div></div>
+
+  <div class="stop-card" id="card-5">
+    <div class="stop-header" onclick="toggleCard(5)">
+      <div class="stop-num" style="background:var(--navy)">L</div>
+      <div class="stop-info"><div class="stop-name">Lunch</div><div class="stop-meta"><span class="dur">~60 min</span><span class="stag">Two options</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(5)" id="chk-5"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Two excellent options right in the kasbah area — pick on the day based on mood and appetite.</div>
+      <div class="lunch-opt">
+        <div class="lo-name">Maison Grill Kasbah</div><div class="rating">★★★★★ 4.6 · 625 reviews</div>
+        <div class="lo-desc">Halfway up the kasbah hill. Authentic Moroccan grills — red snapper, kebab, bissara. Lighter lunch ~100 MAD for two.</div>
+        <div class="maps-choice" style="margin-top:8px">
+          <a class="gmaps-btn" style="font-size:11px;padding:5px 11px" href="https://maps.google.com/?q=33+Rue+de+la+Kasbah,Tangier" target="_blank">Google Maps ↗</a>
+          <a class="amaps-btn" style="font-size:11px;padding:5px 11px" href="https://maps.apple.com/?q=Maison+Grill+Kasbah,Tangier" target="_blank">Apple Maps ↗</a>
+        </div>
+      </div>
+      <div class="lunch-opt">
+        <div class="lo-name">Dar Harruch</div><div class="rating">★★★★★ 4.8 · 3,772 reviews</div>
+        <div class="lo-desc">Hidden in medina alleys near Petit Socco. Pastilla, tagines, couscous. Full menu with drink ~170 MAD. Accepts card.</div>
+        <div class="maps-choice" style="margin-top:8px">
+          <a class="gmaps-btn" style="font-size:11px;padding:5px 11px" href="https://maps.google.com/?q=Dar+Harruch,Tangier" target="_blank">Google Maps ↗</a>
+          <a class="amaps-btn" style="font-size:11px;padding:5px 11px" href="https://maps.apple.com/?q=Dar+Harruch,Tangier" target="_blank">Apple Maps ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-block"><div class="tbl">Early Afternoon — ~1:45pm</div></div>
+
+  <div class="stop-card" id="card-6">
+    <div class="stop-header" onclick="toggleCard(6)">
+      <div class="stop-num">5</div>
+      <div class="stop-info"><div class="stop-name">Café Hafa — Mint Tea</div><div class="stop-meta"><span class="dur">~30 min</span><span class="stag">Café</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(6)" id="chk-6"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Short taxi from the kasbah (~20 MAD). Legendary cliffside café open since 1921 — the Rolling Stones, the Beatles, and Beat Generation writers drank here. Terraced levels overlook the Strait of Gibraltar. On a clear day you can see Spain. Mint tea ~15 MAD.</div>
+      <div class="tip-box">💡 Find your own seat — service is wonderfully relaxed. Lower terraces have the best views. Cash only.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Cafe+Hafa,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Cafe+Hafa,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-block"><div class="tbl">Mid Afternoon — ~2:15pm</div></div>
+
+  <div class="stop-card optional" id="card-7">
+    <div class="stop-header" onclick="toggleCard(7)">
+      <div class="stop-num">6</div>
+      <div class="stop-info"><div class="stop-name">Tangier Beach</div><div class="stop-meta"><span class="dur">~30 min</span><span class="opt-badge">Optional</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(7)" id="chk-7"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Quick taxi from Café Hafa to the beach boulevard (Blvd Mohamed VI). A lovely stroll along the golden bay with views across the Strait. 20–30 minutes is plenty before your western cliffs excursion.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Tangier+Beach,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Tangier+Beach,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-block"><div class="tbl">Afternoon Taxi Run — ~3:00pm to 5:30pm</div></div>
+
+  <div class="stop-card taxi-card" id="card-8">
+    <div class="stop-header" onclick="toggleCard(8)">
+      <div class="stop-num" style="background:var(--gold)">T</div>
+      <div class="stop-info"><div class="stop-name">Taxi — Western Cliffs Excursion</div><div class="stop-meta"><span class="dur">~30 min drive</span><span class="stag" style="color:var(--gold)">Taxi required</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(8)" id="chk-8"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Negotiate a round-trip taxi covering both the Caves of Hercules and the Phoenician Tombs, then back to port. 300–400 MAD (~$30–40) round trip is fair. Ask the driver to wait at each stop.</div>
+      <div class="tip-box">💡 Agree the fare explicitly covers waiting time at both sites. A nearby hotel's front desk can help call a reputable driver.</div>
+    </div>
+  </div>
+
+  <div class="stop-card" id="card-9">
+    <div class="stop-header" onclick="toggleCard(9)">
+      <div class="stop-num">7</div>
+      <div class="stop-info"><div class="stop-name">Caves of Hercules</div><div class="stop-meta"><span class="dur">~45 min</span><span class="stag">Landmark</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(9)" id="chk-9"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Legendary sea caves where Hercules rested before his labours. The cave opening frames a natural silhouette of the African continent — one of Morocco's most photographed views. Entry ~80 MAD. Surrounding cliffs offer spectacular ocean views even without entering.</div>
+      <div class="tip-box">💡 On-site photographers offer photos for ~30 MAD. The view from outside the entrance is free and equally stunning.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Hercules+Caves,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Hercules+Caves,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-card optional" id="card-10">
+    <div class="stop-header" onclick="toggleCard(10)">
+      <div class="stop-num">8</div>
+      <div class="stop-info"><div class="stop-name">Phoenician Tombs</div><div class="stop-meta"><span class="dur">~25 min</span><span class="opt-badge">Optional</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(10)" id="chk-10"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Rock-carved graves dating to 800–1000 BC on the Atlantic clifftop. Free entry. Raw and unofficial, but the Atlantic views in late afternoon light are breathtaking. Skip if energy is low — the Caves will have been the highlight of this leg.</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Phoenician+Tombs,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Phoenician+Tombs,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-block"><div class="tbl">Return — depart by 5:30pm</div></div>
+
+  <div class="stop-card" id="card-11" style="margin-bottom:24px">
+    <div class="stop-header" onclick="toggleCard(11)">
+      <div class="stop-num" style="background:var(--navy)">E</div>
+      <div class="stop-info"><div class="stop-name">Back to Cruise Terminal</div><div class="stop-meta"><span class="dur">~15–20 min drive</span></div></div>
+      <div class="stop-right"><button class="chk-btn" onclick="event.stopPropagation();toggleCheck(11)" id="chk-11"></button><span class="exp-icon">▾</span></div>
+    </div>
+    <div class="stop-body">
+      <div class="desc">Your waiting taxi drives straight back from the western cliffs — about 15–20 minutes. Aim to leave by 5:30pm for a comfortable buffer before 6pm. Marhaba — welcome back!</div>
+      <div class="maps-choice">
+        <a class="gmaps-btn" href="https://maps.google.com/?q=Port+de+Tanger+Ville,Tangier,Morocco" target="_blank">Google Maps ↗</a>
+        <a class="amaps-btn" href="https://maps.apple.com/?q=Port+de+Tanger+Ville,Tangier,Morocco" target="_blank">Apple Maps ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-map" onclick="switchView('map')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C4593A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21"/>
+      <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+    </svg>
+    <span class="nav-label" style="color:var(--terra)">Map</span>
+  </button>
+  <button class="nav-btn" id="nav-list" onclick="switchView('list')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A97A4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <circle cx="3" cy="6" r="1" fill="#8A97A4" stroke="none"/>
+      <circle cx="3" cy="12" r="1" fill="#8A97A4" stroke="none"/>
+      <circle cx="3" cy="18" r="1" fill="#8A97A4" stroke="none"/>
+    </svg>
+    <span class="nav-label">Itinerary</span>
+  </button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const STOPS=[
+  {label:'S',name:'Cruise Terminal',detail:'Depart 10:30am',dur:'Depart 10:30am',type:'port',lat:35.7914,lng:-5.8001,zoom:14,gmaps:'https://maps.google.com/?q=Port+de+Tanger+Ville,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Port+de+Tanger+Ville,Tangier,Morocco'},
+  {label:'1',name:'Grand Socco',detail:'~20 min · Gateway to the medina',dur:'~20 min',type:'main',lat:35.7844,lng:-5.8130,zoom:16,gmaps:'https://maps.google.com/?q=Grand+Socco,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Grand+Socco,Tangier,Morocco'},
+  {label:'2',name:'Medina Shopping',detail:'~60–80 min · Souks & specialty shops',dur:'~60–80 min',type:'shop',lat:35.7856,lng:-5.8123,zoom:16,gmaps:'https://maps.google.com/?q=Rue+Siaghine,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Rue+Siaghine,Tangier,Morocco'},
+  {label:'3',name:'Petit Socco',detail:'~15 min · Historic bohemian square',dur:'~15 min',type:'main',lat:35.7855,lng:-5.8106,zoom:17,gmaps:'https://maps.google.com/?q=Petit+Socco,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Petit+Socco,Tangier,Morocco'},
+  {label:'4',name:'Upper Kasbah & Alleyways',detail:'~40 min · Strait of Gibraltar views',dur:'~40 min',type:'main',lat:35.7886,lng:-5.8128,zoom:16,gmaps:'https://maps.google.com/?q=Kasbah,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Kasbah,Tangier,Morocco'},
+  {label:'L',name:'Lunch',detail:'~60 min · Maison Grill Kasbah or Dar Harruch',dur:'~60 min',type:'food',lat:35.7873,lng:-5.8142,zoom:16,gmaps:'https://maps.google.com/?q=Maison+Grill+Kasbah,Tangier',amaps:'https://maps.apple.com/?q=Maison+Grill+Kasbah,Tangier'},
+  {label:'5',name:'Café Hafa — Mint Tea',detail:'~30 min · Cliffside views of the strait',dur:'~30 min',type:'main',lat:35.7914,lng:-5.8218,zoom:16,gmaps:'https://maps.google.com/?q=Cafe+Hafa,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Cafe+Hafa,Tangier,Morocco'},
+  {label:'6',name:'Tangier Beach',detail:'~30 min · Optional bay stroll',dur:'~30 min',type:'main',optional:true,lat:35.7759,lng:-5.7807,zoom:15,gmaps:'https://maps.google.com/?q=Tangier+Beach,Morocco',amaps:'https://maps.apple.com/?q=Tangier+Beach,Morocco'},
+  {label:'T',name:'Taxi — Western Cliffs',detail:'~30 min drive · 300–400 MAD round trip',dur:'~30 min drive',type:'taxi',lat:35.7700,lng:-5.8900,zoom:11,gmaps:'https://maps.google.com/?q=Tangier,Morocco',amaps:'https://maps.apple.com/?q=Tangier,Morocco'},
+  {label:'7',name:'Caves of Hercules',detail:'~45 min · Entry ~80 MAD',dur:'~45 min',type:'main',lat:35.7599,lng:-5.9392,zoom:15,gmaps:'https://maps.google.com/?q=Hercules+Caves,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Hercules+Caves,Tangier,Morocco'},
+  {label:'8',name:'Phoenician Tombs',detail:'~25 min · Optional · Free entry',dur:'~25 min',type:'main',optional:true,lat:35.7908,lng:-5.8200,zoom:16,gmaps:'https://maps.google.com/?q=Phoenician+Tombs,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Phoenician+Tombs,Tangier,Morocco'},
+  {label:'E',name:'Back to Cruise Terminal',detail:'~15–20 min drive · Depart by 5:30pm',dur:'~15–20 min',type:'port',lat:35.7914,lng:-5.8001,zoom:14,gmaps:'https://maps.google.com/?q=Port+de+Tanger+Ville,Tangier,Morocco',amaps:'https://maps.apple.com/?q=Port+de+Tanger+Ville,Tangier,Morocco'}
+];
+const TOTAL=12;
+let checked=[];
+try{checked=JSON.parse(localStorage.getItem('tgr5')||'[]');}catch(e){}
+let lateMode=false,map,currentMarker;
+
+function dotColor(t){return t==='taxi'?'#C49A2A':t==='shop'?'#1A6B5C':t==='food'?'#1C2B3A':'#C4593A';}
+
+function markerIcon(label,color){
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:30px;height:30px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);font-family:'DM Sans',sans-serif;">${label}</div>`,
+    iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-18]
+  });
+}
+
+function focusStop(idx){
+  const s=STOPS[idx];
+  const c=dotColor(s.type);
+  if(currentMarker)map.removeLayer(currentMarker);
+  currentMarker=L.marker([s.lat,s.lng],{icon:markerIcon(s.label,c)})
+    .addTo(map)
+    .bindPopup(`<div class="pop-name">${s.name}</div><div class="pop-dur">${s.detail}</div><div class="pop-links"><a href="${s.gmaps}" target="_blank" style="background:#C4593A">Google Maps ↗</a><a href="${s.amaps}" target="_blank" style="background:#1C2B3A">Apple Maps ↗</a></div>`,{maxWidth:230})
+    .openPopup();
+  map.setView([s.lat,s.lng],s.zoom,{animate:true,duration:.6});
+  document.getElementById('map-next-icon').textContent=s.label;
+  document.getElementById('map-next-icon').style.background=c;
+  document.getElementById('map-next-name').textContent=s.name;
+  document.getElementById('map-next-detail').textContent=s.dur;
+  document.getElementById('map-next-link').href=s.gmaps;
+  renderMapList(idx);
+}
+
+function getNext(){for(let i=0;i<TOTAL;i++){if(!checked.includes(i))return i;}return TOTAL-1;}
+
+function renderMapList(activeIdx){
+  const list=document.getElementById('map-stop-list');
+  list.innerHTML='';
+  STOPS.forEach((s,i)=>{
+    const done=checked.includes(i),isActive=i===activeIdx,c=dotColor(s.type);
+    const row=document.createElement('div');
+    row.className='map-stop-item'+(isActive?' active-stop':'')+(done?' done-stop':'');
+    row.onclick=()=>focusStop(i);
+    row.innerHTML=`
+      ${done?'<div class="msi-done-dot"></div>':`<div class="msi-dot" style="background:${c}">${s.label}</div>`}
+      <div class="msi-info">
+        <div class="msi-name">${s.name}${s.optional?'<span style="font-size:10px;color:#C4593A"> (optional)</span>':''}</div>
+        <div class="msi-dur">${s.detail}</div>
+      </div>
+      <a class="go-btn" href="${s.gmaps}" target="_blank" onclick="event.stopPropagation()">Go ↗</a>`;
+    list.appendChild(row);
+  });
+}
+
+function save(){try{localStorage.setItem('tgr5',JSON.stringify(checked));}catch(e){}}
+
+function updateProgress(){
+  const n=checked.length,pct=Math.round(n/TOTAL*100);
+  document.getElementById('prog-label').textContent=n+' of '+TOTAL+' stops completed';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('complete-banner').classList.toggle('show',n===TOTAL);
+}
+
+function toggleCheck(i){
+  const btn=document.getElementById('chk-'+i),card=document.getElementById('card-'+i),idx=checked.indexOf(i);
+  if(idx===-1){checked.push(i);btn.classList.add('checked');card.classList.add('done');}
+  else{checked.splice(idx,1);btn.classList.remove('checked');card.classList.remove('done');}
+  save();updateProgress();focusStop(getNext());
+}
+
+function toggleCard(i){
+  const card=document.getElementById('card-'+i);
+  card.classList.toggle('open');
+  card.querySelector('.exp-icon').textContent=card.classList.contains('open')?'▴':'▾';
+}
+
+function toggleLate(){
+  lateMode=!lateMode;
+  document.getElementById('late-tog').classList.toggle('on',lateMode);
+  document.querySelectorAll('.stop-card.optional').forEach(el=>el.classList.toggle('late-hidden',lateMode));
+}
+
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('nav-'+v).classList.add('active');
+  document.querySelector('#nav-map svg').setAttribute('stroke',v==='map'?'#C4593A':'#8A97A4');
+  document.querySelector('#nav-list svg').setAttribute('stroke',v==='list'?'#C4593A':'#8A97A4');
+  document.querySelector('#nav-map .nav-label').style.color=v==='map'?'#C4593A':'';
+  document.querySelector('#nav-list .nav-label').style.color=v==='list'?'#C4593A':'';
+  if(v==='map')setTimeout(()=>map.invalidateSize(),50);
+  window.scrollTo(0,0);
+}
+
+window.addEventListener('load',()=>{
+  checked.forEach(i=>{
+    const b=document.getElementById('chk-'+i),c=document.getElementById('card-'+i);
+    if(b)b.classList.add('checked');if(c)c.classList.add('done');
+  });
+  updateProgress();
+  map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([35.7844,-5.8130],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
+  }).addTo(map);
+  focusStop(getNext());
+});
+</script>
+</body>
+</html>
